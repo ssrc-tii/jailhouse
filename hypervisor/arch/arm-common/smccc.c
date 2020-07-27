@@ -19,7 +19,7 @@
 
 void smccc_discover(void)
 {
-	int ret;
+	long ret;
 
 	ret = smc(PSCI_0_2_FN_VERSION);
 
