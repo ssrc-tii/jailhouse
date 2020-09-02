@@ -17,6 +17,8 @@
 #include <asm/smc.h>
 #include <asm/smccc.h>
 
+bool sdei_available;
+
 void smccc_discover(void)
 {
 	long ret;
