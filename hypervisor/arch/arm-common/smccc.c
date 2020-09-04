@@ -19,7 +19,9 @@
 
 bool sdei_available;
 
-void smccc_discover(void)
+static bool sdei_probed __attribute__((__unused__));
+
+int smccc_discover(void)
 {
 	long ret;
 
@@ -28,26 +30,39 @@ void smccc_discover(void)
 	/* We need >=PSCIv1.0 for SMCCC. Against the spec, U-Boot may also
 	 * return a negative error code. */
 	if (ret < 0 || PSCI_VERSION_MAJOR(ret) < 1)
-		return;
+		return sdei_available ? trace_error(-EIO) : 0;
 
 	/* Check if PSCI supports SMCCC version call */
 	ret = smc_arg1(PSCI_1_0_FN_FEATURES, SMCCC_VERSION);
 	if (ret != ARM_SMCCC_SUCCESS)
-		return;
+		return sdei_available ? trace_error(-EIO) : 0;
+
+#ifdef __aarch64__
+	/* Check if we have SDEI (ARMv8 only) */
+	ret = smc(SDEI_VERSION);
+	if (ret >= ARM_SMCCC_VERSION_1_0) {
+		if (sdei_probed && !sdei_available)
+			return trace_error(-EIO);
+		sdei_available = true;
+	}
+	sdei_probed = true;
+#endif
 
 	/* We need to have SMCCC v1.1 */
 	ret = smc(SMCCC_VERSION);
 	if (ret != ARM_SMCCC_VERSION_1_1)
-		return;
+		return 0;
 
 	/* check if SMCCC_ARCH_FEATURES is actually available */
 	ret = smc_arg1(SMCCC_ARCH_FEATURES, SMCCC_ARCH_FEATURES);
 	if (ret != ARM_SMCCC_SUCCESS)
-		return;
+		return 0;
 
 	ret = smc_arg1(SMCCC_ARCH_FEATURES, SMCCC_ARCH_WORKAROUND_1);
 
 	this_cpu_data()->smccc_has_workaround_1 = ret >= ARM_SMCCC_SUCCESS;
+
+	return 0;
 }
 
 static inline long handle_arch_features(u32 id)
