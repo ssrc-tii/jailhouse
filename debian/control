@@ -1,0 +1,9 @@
+Source: jailhouse-dkms
+Maintainer: Jari Ronkainen <jari.ronkainen@unikie.com>
+Build-Depends: debhelper (>= 9), dkms, python, pip, build-essential
+
+Package: jailhouse-dkms
+Architecture: all
+Depends: ${misc:Depends}
+Description: DKMS source for Jailhouse hypervisor
+
